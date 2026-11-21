@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    private const LOCKOUT_THRESHOLD = 5;
+
+    private const LOCKOUT_SECONDS_PER_ADDITIONAL_FAILURE = 60;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -24,6 +28,11 @@ class LoginRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $email = $this->input('email');
+        if (is_string($email)) {
+            $this->merge(['email' => Str::lower(trim($email))]);
+        }
+
         $this->ensureIsNotRateLimited();
     }
 
@@ -101,8 +110,9 @@ class LoginRequest extends FormRequest
             return false;
         }
 
-        RateLimiter::clear($this->throttleKey());
-        Cache::forget($this->lockoutStateKey());
+        Cache::forget($this->throttleKey());
+        RateLimiter::clear($this->lockoutKey());
+        $this->clearLockoutPresentation();
         $user->forceFill(['last_login_at' => now()])->save();
         Auth::login($user, $this->boolean('remember'));
 
@@ -121,31 +131,22 @@ class LoginRequest extends FormRequest
 
     public function recordFailedAttempt(): ?int
     {
-        $key = $this->throttleKey();
-        $state = Cache::get($this->lockoutStateKey());
-        if (! is_array($state)) {
-            RateLimiter::clear($key);
-            $state = ['failed_count' => 0, 'lockout_count' => 0];
+        $attemptsKey = $this->throttleKey();
+        Cache::add($attemptsKey, 0);
+        $failedAttempts = (int) Cache::increment($attemptsKey);
+
+        if ($failedAttempts < self::LOCKOUT_THRESHOLD) {
+            return null;
         }
 
-        RateLimiter::hit($key, 86400);
-        $state['failed_count'] = (int) ($state['failed_count'] ?? 0) + 1;
-        $state['lockout_count'] = (int) ($state['lockout_count'] ?? 0);
+        $lockoutSeconds = ($failedAttempts - 4) * self::LOCKOUT_SECONDS_PER_ADDITIONAL_FAILURE;
+        $lockoutKey = $this->lockoutKey();
+        RateLimiter::hit($lockoutKey, $lockoutSeconds);
 
-        if ($state['failed_count'] >= 5) {
-            $state['lockout_count']++;
-            $state['failed_count'] = 0;
-            $duration = [60, 300, 900, 3600][min($state['lockout_count'] - 1, 3)];
-            $state['locked_until'] = now()->timestamp + $duration;
-            Cache::put($this->lockoutStateKey(), $state, now()->addDay());
-            RateLimiter::clear($key);
+        $remainingSeconds = RateLimiter::availableIn($lockoutKey);
+        $this->rememberLockoutPresentation(now()->timestamp + $remainingSeconds);
 
-            return $duration;
-        }
-
-        Cache::put($this->lockoutStateKey(), $state, now()->addDay());
-
-        return null;
+        return $remainingSeconds;
     }
 
     /**
@@ -155,25 +156,50 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        $state = Cache::get($this->lockoutStateKey(), []);
-        $seconds = max(0, (int) ($state['locked_until'] ?? 0) - now()->timestamp);
+        $lockoutKey = $this->lockoutKey();
+        if (! RateLimiter::tooManyAttempts($lockoutKey, 1)) {
+            return;
+        }
+
+        $seconds = RateLimiter::availableIn($lockoutKey);
         if ($seconds <= 0) {
+            RateLimiter::clear($lockoutKey);
+
             return;
         }
 
         event(new Lockout($this));
-        session()->flash('login_retry_after', $seconds);
+        $expiresAt = now()->timestamp + $seconds;
+        $this->rememberLockoutPresentation($expiresAt);
 
-        $minutes = intdiv($seconds, 60);
-        $remainingSeconds = $seconds % 60;
+        $minutes = max(1, (int) ceil($seconds / 60));
+        $unit = $minutes === 1 ? 'minute' : 'minutes';
         throw ValidationException::withMessages([
-            'email' => "Too many attempts. Try again in {$minutes} minutes {$remainingSeconds} seconds.",
+            'email' => "Too many attempts. Try again in {$minutes} {$unit}.",
         ]);
     }
 
-    private function lockoutStateKey(): string
+    private function rememberLockoutPresentation(int $expiresAt): void
     {
-        return 'login-lockout:'.hash('sha256', $this->throttleKey());
+        $this->session()->put([
+            'login_lockout_expires_at' => $expiresAt,
+            'login_lockout_email' => $this->normalizedEmail(),
+            'login_lockout_ip' => $this->ip(),
+        ]);
+    }
+
+    private function clearLockoutPresentation(): void
+    {
+        $this->session()->forget([
+            'login_lockout_expires_at',
+            'login_lockout_email',
+            'login_lockout_ip',
+        ]);
+    }
+
+    private function lockoutKey(): string
+    {
+        return $this->throttleKey().':lockout';
     }
 
     /**
@@ -181,6 +207,13 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return 'login:'.hash('sha256', $this->normalizedEmail().'|'.$this->ip());
+    }
+
+    private function normalizedEmail(): string
+    {
+        $email = $this->input('email');
+
+        return is_string($email) ? Str::lower(trim($email)) : '';
     }
 }

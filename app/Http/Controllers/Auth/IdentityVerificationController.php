@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -61,18 +60,10 @@ class IdentityVerificationController extends Controller
             && hash_equals(Str::lower($user->email), Str::lower($validated['email']))
             && ! $user->isAdmin()
             && ! $user->hasVerifiedEmail()) {
-            $key = 'identity-verification-resend:'.$user->getKey();
-            if (RateLimiter::tooManyAttempts($key, 3)) {
-                return back()
-                    ->with('verification_user_id', $user->id)
-                    ->with('verification_email', $user->email)
-                    ->with('verification-error', 'You have requested too many links. Please try again later.');
-            }
-
             if (! $user->sendEmailVerificationNotification()) {
                 return back()
                     ->with('verification_user_id', $user->id)
-                    ->with('verification-error', 'You have requested too many links. Please try again later.');
+                    ->with('verification-error', 'We could not send a confirmation link right now. Please check your inbox or try again later.');
             }
         }
 

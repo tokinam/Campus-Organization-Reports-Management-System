@@ -14,7 +14,7 @@
 <p x-show="draftTooLarge" x-cloak class="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">Draft too large to save automatically. Please submit or keep this page open.</p>
 <p x-show="draftSaveError" x-cloak x-text="draftSaveError" class="mb-2 text-sm text-red-700" role="alert"></p>
 
-<div x-show="discardConfirmOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="discard-draft-title">
+<div x-show="discardConfirmOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="discard-draft-title">
     <div class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
         <h2 id="discard-draft-title" class="text-lg font-bold text-slate-900">Discard this draft?</h2>
         <p class="mt-2 text-sm text-slate-700">This will permanently delete the saved entries.</p>

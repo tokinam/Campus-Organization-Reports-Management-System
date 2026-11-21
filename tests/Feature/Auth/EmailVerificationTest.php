@@ -6,7 +6,9 @@ use App\Mail\ConfirmIdentityMail;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\SendQueuedMailable;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -119,7 +121,7 @@ class EmailVerificationTest extends TestCase
         $this->assertStringContainsString('src="cid:osdw-logo@orgtrack"', $html);
 
         $this->get('/login')->assertSee(
-            'We sent a confirmation link to your email. Please confirm your identity to continue.'
+            'We sent a confirmation link. Please confirm your identity to continue.'
         );
     }
 
@@ -214,6 +216,68 @@ class EmailVerificationTest extends TestCase
             ]);
 
         Mail::assertNothingOutgoing();
+        $this->assertGuest();
+    }
+
+    public function test_confirmation_mailable_can_be_serialized_for_the_queue(): void
+    {
+        $job = new SendQueuedMailable(new ConfirmIdentityMail(
+            'Organization Secretary',
+            'https://example.test/verify-email/1/hash',
+        ));
+
+        $serializedJob = serialize($job);
+
+        $this->assertNotEmpty($serializedJob);
+        $this->assertInstanceOf(SendQueuedMailable::class, unserialize($serializedJob));
+    }
+
+    public function test_confirmation_email_embeds_its_logo_inline_when_delivered(): void
+    {
+        $mailer = Mail::mailer('array');
+        $mailer->to('secretary@example.test')->send(new ConfirmIdentityMail(
+            'Organization Secretary',
+            'https://example.test/verify-email/1/hash',
+        ));
+
+        $sentMessage = $mailer->getSymfonyTransport()->messages()->first();
+        $rawMessage = $sentMessage->toString();
+
+        $this->assertStringContainsString('cid:osdw-logo@orgtrack', $rawMessage);
+        $this->assertStringContainsString('Content-ID: <osdw-logo@orgtrack>', $rawMessage);
+    }
+
+    public function test_email_delivery_failure_does_not_interrupt_login_or_authenticate_unverified_user(): void
+    {
+        config(['queue.default' => 'sync']);
+        $user = User::factory()->unverified()->create();
+        $mailer = \Mockery::mock();
+        $mailer->shouldReceive('send')
+            ->once()
+            ->with(\Mockery::type(ConfirmIdentityMail::class))
+            ->andThrow(new \RuntimeException('SMTP unavailable'));
+
+        Mail::shouldReceive('to')
+            ->once()
+            ->with($user->email)
+            ->andReturn($mailer);
+        Log::shouldReceive('error')
+            ->once()
+            ->with('Failed to dispatch identity verification email.', \Mockery::on(
+                fn (array $context): bool => $context['user_id'] === $user->id
+                    && $context['exception'] instanceof \RuntimeException,
+            ));
+
+        $this->withSession(['login_captcha' => 'ABCDE'])
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'captcha' => 'ABCDE',
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHas('status', 'identity-verification-throttled');
+
         $this->assertGuest();
     }
 }

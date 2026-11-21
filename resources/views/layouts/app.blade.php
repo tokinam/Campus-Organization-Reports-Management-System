@@ -4,6 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrgTrack</title>
+    <script>
+        (() => {
+            const storageKey = @js('orgtrack-appearance:' . (string) auth()->id());
+            const validPreferences = ['light', 'dark', 'system'];
+            const systemPreference = window.matchMedia('(prefers-color-scheme: dark)');
+            let preference = 'system';
+
+            try {
+                const storedPreference = window.localStorage.getItem(storageKey);
+                if (validPreferences.includes(storedPreference)) preference = storedPreference;
+            } catch (error) {
+                console.error('Unable to read the saved appearance preference.', error);
+            }
+
+            const applyPreference = () => {
+                const theme = preference === 'system'
+                    ? (systemPreference.matches ? 'dark' : 'light')
+                    : preference;
+                document.documentElement.dataset.appearancePreference = preference;
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            };
+
+            window.orgTrackAppearance = {
+                get preference() {
+                    return preference;
+                },
+                setPreference(value) {
+                    if (!validPreferences.includes(value)) {
+                        console.error('Ignored an invalid appearance preference.');
+                        return;
+                    }
+
+                    preference = value;
+                    applyPreference();
+
+                    try {
+                        window.localStorage.setItem(storageKey, preference);
+                    } catch (error) {
+                        console.error('Unable to save the appearance preference.', error);
+                    }
+                },
+            };
+
+            applyPreference();
+
+            const followSystemPreference = () => {
+                if (preference === 'system') applyPreference();
+            };
+
+            if (typeof systemPreference.addEventListener === 'function') {
+                systemPreference.addEventListener('change', followSystemPreference);
+            } else {
+                systemPreference.addListener(followSystemPreference);
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -35,16 +92,71 @@
         #sidebar nav li > a[onclick]:hover, #sidebar > div:last-child div[x-show] a[onclick]:hover { color: #FFB74D !important; background-color: rgba(255, 255, 255, 0.08) !important; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" data-interface="{{ auth()->user()->isAdmin() ? 'admin' : 'organization' }}">
 @php
     $sidebarUser = auth()->user();
     $sidebarAccent = '#FFB74D';
+    $initialUnreadCount = $sidebarUser->unreadNotificationsCount();
 @endphp
 
-<div class="flex min-h-screen" x-data="{ notificationsOpen: false, profileMenuOpen: false }">
+<div class="flex min-h-screen" x-data="{
+    notificationsOpen: false,
+    profileMenuOpen: false,
+    unreadCount: @js($initialUnreadCount),
+    unreadCountUrl: @js(route('notifications.unread-count')),
+    notificationCountFailed: false,
+    notificationCountLoading: false,
+    unreadCountInterval: null,
+    visibilityChangeHandler: null,
+    refreshUnreadCount() {
+        if (this.notificationCountLoading) return;
+
+        this.notificationCountLoading = true;
+        fetch(this.unreadCountUrl, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Unable to fetch unread notification count.');
+                return response.json();
+            })
+            .then(data => {
+                if (!Number.isSafeInteger(data.count) || data.count < 0) {
+                    throw new Error('The unread notification count response was invalid.');
+                }
+
+                this.unreadCount = data.count;
+                this.notificationCountFailed = false;
+            })
+            .catch(error => {
+                if (!this.notificationCountFailed) {
+                    console.error('Unable to refresh unread notification count.', error);
+                }
+
+                this.notificationCountFailed = true;
+            })
+            .finally(() => {
+                this.notificationCountLoading = false;
+            });
+    },
+    init() {
+        this.refreshUnreadCount();
+        this.unreadCountInterval = window.setInterval(() => {
+            if (!document.hidden) this.refreshUnreadCount();
+        }, 30000);
+        this.visibilityChangeHandler = () => {
+            if (!document.hidden) this.refreshUnreadCount();
+        };
+        document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+    },
+    destroy() {
+        window.clearInterval(this.unreadCountInterval);
+        document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    },
+}">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-20 flex w-64 -translate-x-full flex-col text-white transition-transform duration-300 ease-in-out md:translate-x-0" @style(['--sidebar-accent' => $sidebarAccent, 'background' => 'radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%)'])>
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-20 flex w-64 -translate-x-full flex-col text-white transition-transform duration-200 ease-in-out md:translate-x-0" @style(['--sidebar-accent' => $sidebarAccent, 'background' => 'radial-gradient(circle at 100% 0%, #E65100 0%, rgba(230,81,0,0) 60%), linear-gradient(180deg, #3A1A06 0%, #2A1204 100%)'])>
         <div class="border-b border-white/10 px-3 py-4">
             <div class="flex items-center justify-between gap-3">
                 <img src="{{ asset('images/orgTracklogo.png') }}" alt="OrgTrack logo" class="h-10 w-10 rounded-md object-contain">
@@ -83,7 +195,7 @@
                             <svg class="h-4 w-4 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </button>
 
-                        <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
+                        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 max-h-0" x-transition:enter-end="opacity-100 max-h-64" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 max-h-64" x-transition:leave-end="opacity-0 max-h-0" class="mt-1 space-y-0.5 overflow-hidden pl-9">
                             <a href="{{ route('gpoa.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('gpoa.*') ? 'sidebar-link-active' : 'text-white' }}">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 19.5h13.5M7.5 16.5V8.25h9v8.25M9 11.25h6"/></svg>
                                 <span>My GPOA</span>
@@ -149,7 +261,7 @@
                             <svg class="h-4 w-4 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </button>
 
-                        <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
+                        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 max-h-0" x-transition:enter-end="opacity-100 max-h-64" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 max-h-64" x-transition:leave-end="opacity-0 max-h-0" class="mt-1 space-y-0.5 overflow-hidden pl-9">
                             <a href="{{ route('admin.gpoa.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.gpoa.*') ? 'sidebar-link-active' : 'text-white' }}">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 19.5h13.5M7.5 16.5V8.25h9v8.25M9 11.25h6"/></svg>
                                 <span>GPOA</span>
@@ -205,7 +317,7 @@
                                 <svg class="h-4 w-4 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                             </button>
 
-                            <div x-show="open" x-transition class="mt-1 space-y-0.5 overflow-hidden pl-9">
+                            <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 max-h-0" x-transition:enter-end="opacity-100 max-h-64" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 max-h-64" x-transition:leave-end="opacity-0 max-h-0" class="mt-1 space-y-0.5 overflow-hidden pl-9">
                                 <a href="{{ route('admin.backups.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.backups.*') ? 'sidebar-link-active' : 'text-white' }}">
                                     <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25V7.5A4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.5 4.5v.75M5.25 10.5h13.5v9h-13.5z"/></svg>
                                     <span>Backup &amp; Restore</span>
@@ -235,17 +347,24 @@
                     </div>
                 </button>
 
-                <button type="button" @click="notificationsOpen = true" class="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-white transition" aria-label="Open notifications">
+                <button type="button" @click="notificationsOpen = true; refreshUnreadCount()" class="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-white transition" aria-label="Open notifications">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0h-6"/></svg>
-                    @if(auth()->user()->unreadNotificationsCount() > 0)
-                        <span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{{ auth()->user()->unreadNotificationsCount() }}</span>
-                    @endif
+                    <span x-cloak x-show="unreadCount > 0" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-75" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-75" x-text="unreadCount" class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white" role="status" aria-live="polite" aria-atomic="true"></span>
                 </button>
+                <span class="sr-only" role="status" aria-live="polite" x-text="notificationCountFailed ? 'Unread notification count could not be refreshed.' : ''"></span>
             </div>
 
-            <div x-show="profileMenuOpen" x-transition class="mt-2 rounded-md border border-white/10 bg-black/15 p-2">
+            <div x-show="profileMenuOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="mt-2 rounded-md border border-white/10 bg-black/15 p-2">
                 <a href="{{ route('profile.edit') }}" class="block rounded-md px-2 py-1.5 text-sm text-white transition">Edit Profile</a>
-                <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('sidebar-logout-form').submit();" class="mt-1 block rounded-md px-2 py-1.5 text-sm text-white transition">Logout</a>
+                <div class="mt-2 border-t border-white/10 pt-2">
+                    <label for="appearancePreference" class="block px-2 text-xs font-medium text-white/75">Appearance</label>
+                    <select id="appearancePreference" data-appearance-select x-init="$el.value = window.orgTrackAppearance.preference" @change="window.orgTrackAppearance.setPreference($event.target.value)" class="mt-1 w-full rounded-md border border-white/10 bg-black/20 px-2 py-2 text-sm text-white" style="color-scheme: dark">
+                        <option value="system">System default</option>
+                        <option value="light">Light mode</option>
+                        <option value="dark">Dark mode</option>
+                    </select>
+                </div>
+                <button type="submit" form="sidebar-logout-form" class="mt-1 block w-full rounded-md px-2 py-1.5 text-left text-sm text-white transition">Logout</button>
                 <form id="sidebar-logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
             </div>
         </div>
@@ -255,9 +374,9 @@
         $modalNotifications = auth()->user()->notifications()->latest()->take(10)->get();
     @endphp
 
-    <div x-show="notificationsOpen" x-on:keydown.escape.window="notificationsOpen = false" class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" role="dialog" aria-modal="true" aria-label="Notifications">
+    <div x-show="notificationsOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-on:keydown.escape.window="notificationsOpen = false" class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" role="dialog" aria-modal="true" aria-label="Notifications">
         <div class="fixed inset-0 bg-gray-500 opacity-75" x-on:click="notificationsOpen = false"></div>
-        <div class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl sm:w-full sm:max-w-lg sm:mx-auto">
+        <div x-show="notificationsOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl sm:w-full sm:max-w-lg sm:mx-auto">
         <div class="bg-white rounded-t-lg px-6 py-5 border-b border-gray-200 flex items-center justify-between">
             <div>
                 <h2 class="text-xl font-bold text-gray-900">Notifications</h2>
@@ -303,10 +422,10 @@
     </div>
 
     <!-- Mobile overlay -->
-    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black/50 z-10 hidden md:hidden"></div>
+    <div id="overlay" aria-hidden="true" class="fixed inset-0 bg-black/50 z-10 pointer-events-none opacity-0 transition-opacity duration-200 md:hidden"></div>
 
     <!-- Main Content -->
-    <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-auto">
+    <div class="min-w-0 max-w-full flex-1 ml-0 md:ml-64 transition-all duration-200 overflow-auto">
         <!-- Top bar (mobile) -->
         <header class="w-full min-w-0 max-w-full bg-white shadow-sm h-14 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 md:hidden">
             <button id="sidebarToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation menu" class="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md p-2 focus:outline-none">
@@ -319,7 +438,7 @@
         </header>
 
         <!-- Page Content -->
-        <main class="min-w-0 max-w-full p-3 md:p-8 w-full mx-auto md:max-w-7xl">
+        <main class="orgtrack-main-content min-w-0 max-w-full p-3 md:p-8 w-full mx-auto md:max-w-7xl">
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-5 flex items-center justify-between">
                     <span>{{ session('success') }}</span>
@@ -353,14 +472,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeButton = document.querySelector('[data-sidebar-close]');
     const open  = () => {
         sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('hidden');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
         overlay.setAttribute('aria-hidden', 'false');
         toggle?.setAttribute('aria-expanded', 'true');
         toggle?.setAttribute('aria-label', 'Close navigation menu');
     };
     const close = () => {
         sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
         overlay.setAttribute('aria-hidden', 'true');
         toggle?.setAttribute('aria-expanded', 'false');
         toggle?.setAttribute('aria-label', 'Open navigation menu');

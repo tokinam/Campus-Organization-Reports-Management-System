@@ -1,5 +1,23 @@
 import Chart from 'chart.js/auto';
 
+Chart.defaults.animation.duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280;
+Chart.defaults.animation.easing = 'easeOutQuart';
+
+function readChartTheme() {
+    const styles = window.getComputedStyle(document.body);
+
+    return {
+        text: styles.getPropertyValue('--orgtrack-ink').trim() || '#0f172a',
+        muted: styles.getPropertyValue('--orgtrack-muted').trim() || '#64748b',
+        grid: styles.getPropertyValue('--orgtrack-line').trim() || '#e2e8f0',
+        surface: styles.getPropertyValue('--orgtrack-surface').trim() || '#ffffff',
+    };
+}
+
+const initialTheme = readChartTheme();
+Chart.defaults.color = initialTheme.text;
+Chart.defaults.borderColor = initialTheme.grid;
+
 const palette = {
     Pending: '#F59E0B',
     Ongoing: '#0EA5E9',
@@ -21,7 +39,7 @@ const centerTextPlugin = {
 
         ctx.save();
         ctx.font = '700 24px ui-sans-serif, system-ui, sans-serif';
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = readChartTheme().text;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2);
@@ -47,7 +65,7 @@ function initDoughnut(canvas) {
             datasets: [{
                 data: hasValues ? values : [1],
                 backgroundColor: hasValues ? labels.map(label => palette[label] || '#CBD5E1') : ['#e2e8f0'],
-                borderColor: '#FFFFFF',
+                borderColor: readChartTheme().surface,
                 borderWidth: 2,
                 hoverOffset: 4,
             }],
@@ -94,17 +112,64 @@ function initOrganizationProgress(canvas) {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { beginAtZero: true, max: 100, ticks: { callback: value => `${value}%` }, grid: { color: '#e2e8f0' } },
-                y: { grid: { display: false } },
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { color: readChartTheme().muted, callback: value => `${value}%` },
+                    grid: { color: readChartTheme().grid },
+                },
+                y: { ticks: { color: readChartTheme().muted }, grid: { display: false } },
             },
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => `${context.raw}% complete` } } },
         },
     });
 }
 
+function applyMonitoringChartTheme() {
+    const theme = readChartTheme();
+    Chart.defaults.color = theme.text;
+    Chart.defaults.borderColor = theme.grid;
+
+    document.querySelectorAll('canvas').forEach(canvas => {
+        const chart = Chart.getChart(canvas);
+        if (!chart) return;
+
+        chart.options.color = theme.text;
+        if (chart.options.scales?.x) {
+            chart.options.scales.x.ticks.color = theme.muted;
+            if (chart.options.scales.x.grid.display !== false) {
+                chart.options.scales.x.grid.color = theme.grid;
+            }
+        }
+        if (chart.options.scales?.y) {
+            chart.options.scales.y.ticks.color = theme.muted;
+            if (chart.options.scales.y.grid.display !== false) {
+                chart.options.scales.y.grid.color = theme.grid;
+            }
+        }
+        if (chart.config.type === 'doughnut') {
+            chart.data.datasets.forEach(dataset => {
+                dataset.borderColor = theme.surface;
+            });
+        }
+        chart.update('none');
+    });
+}
+
+let chartThemeObserver;
+
 function initializeMonitoringCharts() {
     document.querySelectorAll('canvas[data-chart-type="doughnut"]').forEach(initDoughnut);
     document.querySelectorAll('canvas[data-chart-type="organization-progress"]').forEach(initOrganizationProgress);
+    applyMonitoringChartTheme();
+
+    if (!chartThemeObserver) {
+        chartThemeObserver = new MutationObserver(applyMonitoringChartTheme);
+        chartThemeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme'],
+        });
+    }
 }
 
 if (document.readyState === 'loading') {

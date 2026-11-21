@@ -50,7 +50,7 @@ if (app()->environment('local')) {
             ['id' => 1, 'hash' => sha1($user->email)],
         );
 
-        return (new ConfirmIdentityMail($user, $verificationUrl, 60, asset('images/osdw.logo.jpg')))->render();
+        return (new ConfirmIdentityMail($user->name, $verificationUrl, 60, asset('images/osdw.logo.jpg')))->render();
     })->name('mail-preview.identity-confirmation');
 }
 

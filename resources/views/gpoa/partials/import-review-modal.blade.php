@@ -1,4 +1,4 @@
-<div x-show="reviewOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/60 p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="import-review-title">
+<div x-show="reviewOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/60 p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="import-review-title">
     <div class="mx-0 flex max-h-[90vh] w-full max-w-4xl min-w-0 flex-col overflow-x-hidden overflow-y-auto rounded-none bg-white shadow-2xl sm:mx-2 sm:rounded-lg">
         <header class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white p-3">
             <div class="min-w-0">

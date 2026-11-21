@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -149,13 +150,22 @@ class User extends Authenticatable implements MustVerifyEmail
             now()->addMinutes(60),
             ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
         );
-        $mailer = Mail::to($this->getEmailForVerification());
-        $message = new ConfirmIdentityMail($this, $verificationUrl);
+        try {
+            $mailer = Mail::to($this->getEmailForVerification());
+            $message = new ConfirmIdentityMail($this->name, $verificationUrl);
 
-        if (config('queue.default') === 'sync') {
-            $mailer->send($message);
-        } else {
-            $mailer->queue($message);
+            if (config('queue.default') === 'sync') {
+                $mailer->send($message);
+            } else {
+                $mailer->queue($message);
+            }
+        } catch (\Throwable $exception) {
+            Log::error('Failed to dispatch identity verification email.', [
+                'user_id' => $this->getKey(),
+                'exception' => $exception,
+            ]);
+
+            return false;
         }
 
         return true;

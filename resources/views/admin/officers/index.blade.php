@@ -172,7 +172,7 @@
             </div>
 
             <div x-data="{ openMemberModal: false, editMemberId: null, form: { name: '', position: '', year_level: '', facebook_url: '' } }" x-on:open-member-modal.window="openMemberModal = true; editMemberId = null; form = { name: '', position: '', year_level: '', facebook_url: '' };" x-on:open-edit-member.window="openMemberModal = true; editMemberId = $event.detail.id ?? null; form = { name: $event.detail.name ?? '', position: $event.detail.position ?? '', year_level: $event.detail.year_level ?? '', facebook_url: $event.detail.facebook_url ?? '' };" class="relative">
-                <div x-show="openMemberModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                <div x-show="openMemberModal" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
                     <div class="absolute inset-0 bg-slate-900/40" @click="openMemberModal = false"></div>
                     <div class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
                         <div class="mb-4 flex items-center justify-between">

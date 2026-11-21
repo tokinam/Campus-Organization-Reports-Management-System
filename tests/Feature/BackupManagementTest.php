@@ -26,13 +26,31 @@ class BackupManagementTest extends TestCase
         BackupSetting::query()->firstOrFail()->update(['frequency' => 'monthly']);
         Cache::put('scheduler_last_run_at', now()->subMinute());
 
-        $this->actingAs($admin)
-            ->get(route('admin.backups.index'))
-            ->assertOk()
-            ->assertSee('Last successful backup')
-            ->assertSee('Last Downloaded')
-            ->assertSee('Never downloaded')
-            ->assertSee('Automatic backup is on. It runs whenever the system is in use.');
+        $directory = storage_path('app/backups');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
+        $filename = 'backup_archive_download_tracking.zip';
+        $path = $directory.DIRECTORY_SEPARATOR.$filename;
+        $zip = new ZipArchive;
+        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('database.sql', 'dump');
+        $zip->addEmptyDir('storage/private');
+        $zip->close();
+        BackupArchive::query()->create(['filename' => $filename]);
+
+        try {
+            $this->actingAs($admin)
+                ->get(route('admin.backups.index'))
+                ->assertOk()
+                ->assertSee('Last successful backup')
+                ->assertSee('Last Downloaded')
+                ->assertSee('Never downloaded')
+                ->assertSee('Automatic backup is on. It runs whenever the system is in use.');
+        } finally {
+            BackupArchive::query()->where('filename', $filename)->delete();
+            @unlink($path);
+        }
     }
 
     public function test_backup_page_shows_due_warning_and_next_due_date(): void

@@ -6,22 +6,54 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $captcha = $this->generateCaptcha();
-        request()->session()->put('login_captcha', $captcha);
+        $request->session()->put('login_captcha', $captcha);
+
+        $serverNow = now()->timestamp;
+        $lockoutExpiresAt = $request->session()->get('login_lockout_expires_at', 0);
+        $lockedEmail = $request->session()->get('login_lockout_email', '');
+        $lockoutIp = $request->session()->get('login_lockout_ip');
+
+        if (! is_numeric($lockoutExpiresAt)
+            || (int) $lockoutExpiresAt <= $serverNow
+            || $lockoutIp !== $request->ip()
+            || ! is_string($lockedEmail)
+            || $lockedEmail === '') {
+            $request->session()->forget([
+                'login_lockout_expires_at',
+                'login_lockout_email',
+                'login_lockout_ip',
+            ]);
+            $lockoutExpiresAt = 0;
+            $lockedEmail = '';
+        }
+
+        $loginEmail = old('email', $lockedEmail);
+        $loginLockoutActive = (int) $lockoutExpiresAt > $serverNow
+            && is_string($loginEmail)
+            && Str::lower(trim($loginEmail)) === $lockedEmail;
 
         return response()
-            ->view('auth.login', compact('captcha'))
+            ->view('auth.login', compact(
+                'captcha',
+                'serverNow',
+                'lockoutExpiresAt',
+                'lockedEmail',
+                'loginEmail',
+                'loginLockoutActive',
+            ))
             ->header('Cache-Control', 'no-store');
     }
 

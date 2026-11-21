@@ -36,6 +36,7 @@ class FaqPageTest extends TestCase
         $response = $this->actingAs($admin)->get(route('faq'));
 
         $response->assertOk();
+        $response->assertSee('data-interface="admin"', false);
         $response->assertSee('href="' . route('faq') . '"', false);
         $response->assertSee('How do I monitor GPOA progress per organization?');
         $response->assertSee('How does Activity Monitoring work, and what do the status filters mean?');
@@ -54,6 +55,40 @@ class FaqPageTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('href="' . route('faq') . '"', false);
+    }
+
+    public function test_authenticated_layout_refreshes_the_notification_badge_from_the_count_endpoint(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $notification = UserNotification::create([
+            'user_id' => $user->id,
+            'type' => 'activity_report_approved',
+            'title' => 'Report approved',
+            'message' => 'Your report has been approved.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('faq'))
+            ->assertOk()
+            ->assertSee('data-interface="organization"', false)
+            ->assertSee('unreadCountUrl:', false)
+            ->assertSee('x-text="unreadCount"', false)
+            ->assertSee('data-appearance-select', false)
+            ->assertSee('value="system">System default', false)
+            ->assertSee('orgtrack-appearance:', false)
+            ->assertSee("window.matchMedia('(prefers-color-scheme: dark)')", false)
+            ->assertSee('window.localStorage.setItem(storageKey, preference)', false)
+            ->assertSee('button type="submit" form="sidebar-logout-form"', false);
+
+        $this->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertExactJson(['count' => 1]);
+
+        $notification->markAsRead();
+
+        $this->getJson(route('notifications.unread-count'))
+            ->assertOk()
+            ->assertExactJson(['count' => 0]);
     }
 
     public function test_user_can_view_notifications_and_mark_them_read(): void

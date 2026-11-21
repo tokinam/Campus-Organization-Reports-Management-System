@@ -22,11 +22,18 @@
                 <div class="login-panel login-panel-left">
                 </div>
 
-                <div class="login-panel login-panel-right" x-data="loginLockoutCountdown({{ (int) (session('login_retry_after') ?? 0) }})" x-init="start()">
-                    @php($loginLockoutActive = (int) session('login_retry_after', 0) > 0)
+                <div class="login-panel login-panel-right"
+                     x-data="loginLockoutCountdown({{ (int) $lockoutExpiresAt }}, {{ (int) $serverNow }}, @js($lockedEmail), @js($loginEmail))"
+                     x-init="start()">
                     @php($showLoginError = $errors->any() || $loginLockoutActive)
                     @php($loginErrorMessage = $errors->first())
                     @php($termEndedLogin = $errors->first('email') === \App\Models\User::TERM_ENDED_MESSAGE || request()->boolean('term_ended'))
+                    @php($accountRestrictionLogin = in_array($loginErrorMessage, [
+                        'This account has been archived.',
+                        'This account is inactive. Please contact the OSDW office.',
+                        'This organization account has been deleted and can no longer log in.',
+                        'Please sign in with a student organization account.',
+                    ], true))
                     @if($termEndedLogin)
                         @php($termEndedParts = explode('For assistance or inquiries, please contact us at ', \App\Models\User::TERM_ENDED_MESSAGE, 2))
                     @endif
@@ -42,57 +49,91 @@
                         <p class="login-subtext">Sign in to your account.</p>
                     </div>
 
-                    @if ($termEndedLogin || $showLoginError)
-                        @if ($termEndedLogin)
-                            <div class="alert alert-error !mb-0 !gap-2 !p-3 text-sm">
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <svg class="alert-icon !m-0 !h-4 !w-4 !basis-4" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                        </svg>
-                                        <strong>Account Access Expired</strong>
-                                    </div>
-                                    <p class="mt-1 text-sm">{{ $termEndedParts[0] }}</p>
-                                    <p class="mt-1 text-xs">For assistance or inquiries, please contact us at {{ $termEndedParts[1] ?? '' }}</p>
+                    @if ((int) $lockoutExpiresAt > (int) $serverNow && filled($lockedEmail))
+                        <div class="login-notice login-notice--lockout" role="alert" x-show="lockoutActive" x-transition.opacity.duration.150ms x-cloak>
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 6v6l4 2"></path>
+                            </svg>
+                            <div class="login-notice__content">
+                                <div class="login-notice__title-row">
+                                    <strong>Login Temporarily Restricted</strong>
+                                    <span class="login-notice__countdown" aria-live="polite" x-text="formattedTime">{{ sprintf('%02d:%02d', intdiv(max(0, (int) $lockoutExpiresAt - (int) $serverNow), 60), max(0, (int) $lockoutExpiresAt - (int) $serverNow) % 60) }}</span>
                                 </div>
+                                <p>Too many unsuccessful login attempts. Please wait before trying again.</p>
                             </div>
-                        @else
-                            <div class="alert alert-error" @if ($loginLockoutActive) x-show="remaining > 0" @endif>
-                                <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                                <div>
-                                    <strong>Login Failed</strong>
-                                    <ul class="error-list">
-                                        @if ($loginLockoutActive)
-                                            @php($retryMinutes = intdiv((int) session('login_retry_after'), 60))
-                                            @php($retrySeconds = (int) session('login_retry_after') % 60)
-                                            <li>Too many attempts. Try again in <span x-text="formattedTime">{{ sprintf('%d:%02d', $retryMinutes, $retrySeconds) }}</span>.</li>
-                                        @elseif (filled($loginErrorMessage))
-                                            <li>{{ $loginErrorMessage }}</li>
-                                        @endif
-                                    </ul>
-                                </div>
+                        </div>
+                        <div class="login-notice login-notice--success" role="status" x-show="lockoutExpired" x-transition.opacity.duration.150ms x-cloak>
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M20 6 9 17l-5-5"></path>
+                            </svg>
+                            <div class="login-notice__content">
+                                <strong>You can try again</strong>
+                                <p>The temporary restriction has ended. You may sign in now.</p>
                             </div>
-                        @endif
+                        </div>
+                    @endif
+
+                    @if (! $loginLockoutActive && ($termEndedLogin || $accountRestrictionLogin))
+                        <div class="login-notice login-notice--warning" role="alert">
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"></path>
+                                <path d="M12 8v4"></path>
+                                <path d="M12 16h.01"></path>
+                            </svg>
+                            <div class="login-notice__content">
+                                <strong>{{ $termEndedLogin ? 'Account access expired' : 'Account access restricted' }}</strong>
+                                @if ($termEndedLogin)
+                                    <p>{{ $termEndedParts[0] }}</p>
+                                    <p class="login-notice__detail">For assistance or inquiries, please contact us at {{ $termEndedParts[1] ?? '' }}</p>
+                                @else
+                                    <p>{{ $loginErrorMessage }}</p>
+                                @endif
+                            </div>
+                        </div>
+                    @elseif ($errors->any() && ! $loginLockoutActive)
+                        <div class="login-notice login-notice--error" role="alert">
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="m15 9-6 6"></path>
+                                <path d="m9 9 6 6"></path>
+                            </svg>
+                            <div class="login-notice__content">
+                                <strong>Unable to sign in</strong>
+                                <ul class="login-notice__messages">
+                                    @foreach ($errors->all() as $message)
+                                        <li>{{ $message }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
                     @endif
 
                     @if (session('status'))
-                        <div class="alert alert-success">
-                            <svg class="alert-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
+                        @php($verificationEmailSent = session('status') === 'identity-verification-sent')
+                        @php($verificationEmailUnavailable = session('status') === 'identity-verification-throttled')
+                        <div class="login-notice {{ $verificationEmailSent || $verificationEmailUnavailable ? 'login-notice--info' : 'login-notice--success' }}" role="status">
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                @if ($verificationEmailSent || $verificationEmailUnavailable)
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 16v-4"></path>
+                                    <path d="M12 8h.01"></path>
+                                @else
+                                    <path d="M20 6 9 17l-5-5"></path>
+                                @endif
                             </svg>
+                            <div class="login-notice__content">
                             @if (session('status') === 'identity-verification-sent')
-                                We sent a confirmation link to your email. Please confirm your identity to continue.
+                                    <strong>Check your email</strong>
+                                    <p>We sent a confirmation link. Please confirm your identity to continue.</p>
                             @elseif (session('status') === 'identity-verification-throttled')
-                                A confirmation link was sent recently. Check your email or try again later.
+                                    <strong>Email confirmation unavailable</strong>
+                                    <p>We could not send a confirmation link right now. Check your inbox or try again later.</p>
                             @else
-                                {{ session('status') }}
+                                    <strong>Success</strong>
+                                    <p>{{ session('status') }}</p>
                             @endif
+                            </div>
                         </div>
                     @endif
                     @if (session('verification_user_id'))
@@ -103,10 +144,24 @@
                         </form>
                     @endif
                     @if (session('verification-status'))
-                        <p role="status" class="mb-4 text-center text-sm text-green-700">{{ session('verification-status') }}</p>
+                        <div class="login-notice login-notice--info" role="status">
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                            </svg>
+                            <div class="login-notice__content"><p>{{ session('verification-status') }}</p></div>
+                        </div>
                     @endif
                     @if (session('verification-error'))
-                        <p role="alert" class="mb-4 text-center text-sm text-red-700">{{ session('verification-error') }}</p>
+                        <div class="login-notice login-notice--warning" role="alert">
+                            <svg class="login-notice__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"></path>
+                                <path d="M12 8v4"></path>
+                                <path d="M12 16h.01"></path>
+                            </svg>
+                            <div class="login-notice__content"><p>{{ session('verification-error') }}</p></div>
+                        </div>
                     @endif
 
                     <form method="POST" action="{{ route('login') }}" class="login-form">
@@ -121,7 +176,8 @@
                                         id="email"
                                         type="email"
                                         name="email"
-                                        value="{{ old('email') }}"
+                                        value="{{ $loginEmail }}"
+                                        x-on:input="updateEmail($event.target.value)"
                                         required
                                         autofocus
                                         autocomplete="username"
@@ -204,9 +260,9 @@
                                 @endif
                             </div>
 
-                            <button type="submit" class="login-button student-submit-button" x-bind:disabled="remaining > 0">
-                                <span x-text="remaining > 0 ? `Try again in ${formattedTime}` : 'Sign In'">Sign In</span>
-                                <svg x-show="remaining <= 0" class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button type="submit" class="login-button student-submit-button" @disabled($loginLockoutActive) x-bind:disabled="lockoutActive">
+                                <span x-text="lockoutActive ? `Try again in ${formattedTime}` : 'Sign In'">Sign In</span>
+                                <svg x-show="!lockoutActive" class="button-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                     <polyline points="12 5 19 12 12 19"></polyline>
                                 </svg>
@@ -224,25 +280,48 @@
 
         <script>
             document.addEventListener('alpine:init', () => {
-                Alpine.data('loginLockoutCountdown', (seconds) => ({
-                    remaining: seconds,
-                    timer: null,
-                    get formattedTime() {
-                        const minutes = Math.floor(this.remaining / 60);
-                        const seconds = this.remaining % 60;
-                        return `${minutes}:${String(seconds).padStart(2, '0')}`;
-                    },
-                    start() {
-                        if (this.remaining <= 0) return;
-                        this.timer = window.setInterval(() => {
-                            this.remaining = Math.max(0, this.remaining - 1);
-                            if (this.remaining === 0) {
-                                window.clearInterval(this.timer);
-                                this.timer = null;
+                Alpine.data('loginLockoutCountdown', (expiresAt, serverNow, lockedEmail, currentEmail) => {
+                    const serverOffset = (Number(serverNow) * 1000) - Date.now();
+
+                    return {
+                        expiresAt: Number(expiresAt),
+                        lockedEmail: String(lockedEmail || '').trim().toLowerCase(),
+                        email: String(currentEmail || '').trim().toLowerCase(),
+                        remaining: Math.max(0, Number(expiresAt) - Number(serverNow)),
+                        timer: null,
+                        get lockoutActive() {
+                            return this.remaining > 0 && this.email !== '' && this.email === this.lockedEmail;
+                        },
+                        get lockoutExpired() {
+                            return this.expiresAt > 0 && this.remaining === 0 && this.email !== '' && this.email === this.lockedEmail;
+                        },
+                        get formattedTime() {
+                            const minutes = Math.floor(this.remaining / 60);
+                            const seconds = this.remaining % 60;
+                            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        },
+                        updateEmail(value) {
+                            this.email = String(value || '').trim().toLowerCase();
+                        },
+                        start() {
+                            if (this.expiresAt <= 0) return;
+
+                            const updateRemaining = () => {
+                                const serverTime = (Date.now() + serverOffset) / 1000;
+                                this.remaining = Math.max(0, Math.ceil(this.expiresAt - serverTime));
+                                if (this.remaining === 0) {
+                                    window.clearInterval(this.timer);
+                                    this.timer = null;
+                                }
+                            };
+
+                            updateRemaining();
+                            if (this.remaining > 0) {
+                                this.timer = window.setInterval(updateRemaining, 250);
                             }
-                        }, 1000);
-                    },
-                }));
+                        },
+                    };
+                });
             });
 
             function togglePassword(button) {

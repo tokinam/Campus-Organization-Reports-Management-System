@@ -2,26 +2,27 @@
 
 namespace App\Mail;
 
-use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 use Symfony\Component\Mime\Part\DataPart;
 
 class ConfirmIdentityMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable;
 
     public function __construct(
-        public User $user,
+        public string $userName,
         public string $verificationUrl,
         public int $expiryMinutes = 60,
         public ?string $previewLogoUrl = null,
-    ) {
+    ) {}
+
+    public function build(): static
+    {
         if ($this->previewLogoUrl === null) {
-            $this->withSymfonyMessage(function ($message): void {
+            $this->withSymfonyMessage(static function ($message): void {
                 $logo = new DataPart(
                     file_get_contents(public_path('images/osdw.logo.jpg')),
                     'osdw-logo.jpg',
@@ -31,6 +32,8 @@ class ConfirmIdentityMail extends Mailable
                 $message->addPart($logo);
             });
         }
+
+        return $this;
     }
 
     public function envelope(): Envelope
@@ -43,7 +46,7 @@ class ConfirmIdentityMail extends Mailable
         return new Content(
             view: 'emails.confirm-identity',
             with: [
-                'userName' => $this->user->name,
+                'userName' => $this->userName,
                 'verificationUrl' => $this->verificationUrl,
                 'expiryMinutes' => $this->expiryMinutes,
                 'logoUrl' => $this->previewLogoUrl ?? 'cid:osdw-logo@orgtrack',

@@ -1,5 +1,5 @@
-<div id="orgConfirmModal" class="fixed inset-0 z-[70] hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="orgConfirmTitle" aria-describedby="orgConfirmMessage">
-    <div class="absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-2xl sm:p-6">
+<div id="orgConfirmModal" class="orgtrack-motion-dialog fixed inset-0 z-[70] hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="orgConfirmTitle" aria-describedby="orgConfirmMessage">
+    <div class="orgtrack-motion-dialog-panel absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-2xl sm:p-6">
         <div class="flex items-start gap-3">
             <span id="orgConfirmIconWrap" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
                 <svg data-confirm-icon="danger" class="hidden h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7h12m-10 0 .7 13h6.6L16 7M9 7V4h6v3m-5 4v5m4-5v5"/></svg>

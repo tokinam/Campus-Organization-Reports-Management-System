@@ -1,5 +1,5 @@
-<div id="fileViewerModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="fileViewerTitle">
-    <div class="flex h-full max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
+<div id="fileViewerModal" class="orgtrack-motion-dialog fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="fileViewerTitle">
+    <div class="orgtrack-motion-dialog-panel flex h-full max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
         <header class="flex items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
             <h2 id="fileViewerTitle" class="min-w-0 flex-1 truncate text-base font-semibold text-slate-900">Document</h2>
             <a id="fileViewerNewTab" href="#" target="_blank" rel="noopener" class="shrink-0 text-sm font-medium text-sky-700 underline">Open in new tab</a>

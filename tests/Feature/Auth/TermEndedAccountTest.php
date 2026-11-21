@@ -62,9 +62,10 @@ class TermEndedAccountTest extends TestCase
         $content = $response->getContent();
 
         $this->assertSame(1, substr_count($content, 'This account is inactive. Please contact the OSDW office.'));
-        $this->assertStringContainsString('<li>This account is inactive. Please contact the OSDW office.</li>', $content);
+        $this->assertStringContainsString('class="login-notice login-notice--warning" role="alert"', $content);
+        $this->assertStringContainsString('<p>This account is inactive. Please contact the OSDW office.</p>', $content);
         $this->assertStringNotContainsString('class="form-error">This account is inactive. Please contact the OSDW office.', $content);
-        $this->assertStringNotContainsString('Account Access Expired', $content);
+        $this->assertStringNotContainsString('Account access expired', $content);
     }
 
     public function test_archived_at_alone_blocks_an_otherwise_active_user(): void

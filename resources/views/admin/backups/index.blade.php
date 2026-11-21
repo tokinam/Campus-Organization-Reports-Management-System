@@ -64,7 +64,7 @@
     </div>
 
     @if(session('success'))
-        <div id="backupSuccessToast" class="fixed top-4 right-4 z-[60] flex max-w-sm items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg transition-opacity duration-300" role="status" aria-live="polite">
+        <div id="backupSuccessToast" class="orgtrack-toast fixed top-4 right-4 z-[60] flex max-w-sm items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 shadow-lg transition-[opacity,transform] duration-200" role="status" aria-live="polite">
             <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6"/></svg>
             <p class="min-w-0 flex-1">
                 {{ session('success') }}
@@ -202,8 +202,8 @@
     </div>
 </div>
 
-<div id="deleteBackupModal" class="fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="delete-backup-title">
-    <div class="absolute left-1/2 top-1/2 w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl sm:p-6">
+<div id="deleteBackupModal" class="orgtrack-motion-dialog fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="delete-backup-title">
+    <div class="orgtrack-motion-dialog-panel absolute left-1/2 top-1/2 w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl sm:p-6">
         <div class="flex items-start gap-3">
             <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7h12m-10 0 .7 13h6.6L16 7M9 7V4h6v3m-5 4v5m4-5v5"/></svg>
@@ -227,8 +227,8 @@
     </div>
 </div>
 
-<div id="restoreConfirmModal" class="fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="restore-modal-title">
-    <div class="absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-6">
+<div id="restoreConfirmModal" class="orgtrack-motion-dialog fixed inset-0 z-50 hidden bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="restore-modal-title">
+    <div class="orgtrack-motion-dialog-panel absolute left-1/2 top-1/2 max-h-[95vh] w-[calc(100%-24px)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-6">
         <div class="flex items-start justify-between gap-3">
             <div>
                 <h2 id="restore-modal-title" class="text-lg font-bold text-gray-900">Restore backup</h2>
@@ -274,8 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const hideSuccessToast = () => {
         if (!successToast) return;
         clearTimeout(toastTimer);
-        successToast.classList.add('opacity-0');
-        window.setTimeout(() => successToast.remove(), 300);
+        successToast.classList.add('opacity-0', '-translate-y-2');
+        window.setTimeout(() => successToast.remove(), 200);
     };
 
     const startToastTimer = () => {

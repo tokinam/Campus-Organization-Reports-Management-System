@@ -41,10 +41,10 @@
 
 @media (prefers-reduced-motion: no-preference) {
     @keyframes orgtrack-fade-up {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: none; }
+        from { opacity: 0; translate: 0 8px; }
+        to   { opacity: 1; translate: 0 0; }
     }
-    .animate-fade-up { animation: orgtrack-fade-up 350ms ease-out both; }
+    .animate-fade-up { animation: orgtrack-fade-up 220ms ease-out both; }
 }
 
 :root {
@@ -60,7 +60,13 @@ body[data-interface] {
     min-width: 320px;
     background: var(--orgtrack-canvas);
     color: var(--orgtrack-ink);
-    font-family: "Aptos", "Segoe UI", sans-serif;
+    --orgtrack-surface: #ffffff;
+    --orgtrack-surface-muted: #f8fafc;
+    --orgtrack-surface-raised: #eef2f6;
+    --orgtrack-text-secondary: #475569;
+    --orgtrack-text-muted: var(--orgtrack-muted);
+    --orgtrack-border: var(--orgtrack-line);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     text-rendering: optimizeLegibility;
 }
 
@@ -217,6 +223,7 @@ body[data-interface] [role="dialog"] > div:last-child {
     body[data-interface] *::after {
         scroll-behavior: auto !important;
         animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
 }
@@ -239,7 +246,7 @@ body[data-interface="admin"] .admin-monitoring-dashboard > div a.inline-flex.rou
 body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a {
     min-height: 108px;
     border-color: #e0e5e8;
-    border-top: 3px solid #d56a32;
+    border-top: 3px solid var(--orgtrack-orange);
     border-radius: 7px;
     padding: 1rem;
     box-shadow: 0 2px 6px rgb(23 30 36 / 4%);
@@ -247,7 +254,7 @@ body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="A
 
 body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card {
     min-height: 124px;
-    border-top: 3px solid #c6531b;
+    border-top: 3px solid var(--orgtrack-orange);
 }
 
 body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card-gold { border-top-color: #e7a51a; }
@@ -280,7 +287,7 @@ body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel thead th {
 }
 
 body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-tile {
-    border-left: 3px solid #c6531b;
+    border-left: 3px solid var(--orgtrack-orange);
 }
 
 body[data-interface="admin"] .admin-monitoring-dashboard .admin-alert-amber { border-left-color: #d99a12; }
@@ -356,5 +363,428 @@ body[data-interface="organization"] .orgtrack-activity-list h3 {
 
     body[data-interface="organization"] .orgtrack-activity-list {
         padding: 0.875rem;
+    }
+}
+
+body[data-interface="admin"] {
+    --orgtrack-orange: #1e3a8a;
+    --orgtrack-orange-deep: #1d4ed8;
+    --orgtrack-ink: #1e293b;
+    --orgtrack-muted: #64748b;
+    --orgtrack-line: #dbe3ec;
+    --orgtrack-canvas: #f1f5f9;
+}
+
+body[data-interface="admin"] main h1 {
+    color: #172554;
+}
+
+body[data-interface="admin"] #sidebar {
+    --sidebar-accent: #ffb74d !important;
+    background: radial-gradient(circle at 100% 0%, #e65100 0%, rgb(230 81 0 / 0%) 60%), linear-gradient(180deg, #3a1a06 0%, #2a1204 100%) !important;
+}
+
+body[data-interface="admin"] #sidebar nav a.sidebar-link-active {
+    background: linear-gradient(90deg, rgb(255 183 77 / 40%), rgb(255 183 77 / 12%)) !important;
+    box-shadow: inset 3px 0 #ffb74d !important;
+}
+
+body[data-interface="admin"] #sidebar nav a.sidebar-link-active svg {
+    color: #fff !important;
+}
+
+body[data-interface="admin"] main :is(input, select, textarea):focus {
+    border-color: #2563eb !important;
+    outline-color: rgb(37 99 235 / 14%);
+    --tw-ring-color: rgb(37 99 235 / 24%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes orgtrack-page-enter {
+        from { opacity: 0; translate: 0 6px; }
+        to { opacity: 1; translate: 0 0; }
+    }
+
+    @keyframes orgtrack-toast-enter {
+        from { opacity: 0; translate: 0 -8px; }
+        to { opacity: 1; translate: 0 0; }
+    }
+
+    body[data-interface] .orgtrack-main-content {
+        animation: orgtrack-page-enter 220ms ease-out both;
+    }
+
+    body[data-interface] #sidebar {
+        transition-duration: 200ms;
+    }
+
+    body[data-interface] #overlay {
+        transition: opacity 200ms ease;
+    }
+
+    body[data-interface] :is(button, a) {
+        transition-property: background-color, border-color, color, box-shadow, opacity, transform;
+        transition-duration: 160ms;
+        transition-timing-function: ease;
+    }
+
+    body[data-interface] button:not(:disabled):active {
+        transform: scale(0.985);
+    }
+
+    body[data-interface] main table tbody tr {
+        transition: background-color 140ms ease;
+    }
+
+    body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a,
+    body[data-interface="admin"] .admin-monitoring-dashboard .admin-stat-card {
+        animation: orgtrack-fade-up 220ms ease-out both;
+    }
+
+    body[data-interface="organization"] .orgtrack-statistics .orgtrack-stat-card {
+        animation: orgtrack-fade-up 220ms ease-out both;
+    }
+
+    body[data-interface] .orgtrack-motion-dialog {
+        opacity: 0;
+        transition: opacity 200ms ease, display 200ms allow-discrete;
+        transition-behavior: allow-discrete;
+    }
+
+    body[data-interface] .orgtrack-motion-dialog:not(.hidden) {
+        opacity: 1;
+    }
+
+    body[data-interface] .orgtrack-motion-dialog-panel {
+        opacity: 0;
+        scale: 0.98;
+        transition: opacity 200ms ease, scale 200ms ease;
+        transform-origin: center;
+    }
+
+    body[data-interface] .orgtrack-motion-dialog:not(.hidden) .orgtrack-motion-dialog-panel {
+        opacity: 1;
+        scale: 1;
+    }
+
+    body[data-interface] .orgtrack-toast {
+        animation: orgtrack-toast-enter 220ms ease-out both;
+    }
+
+    @starting-style {
+        body[data-interface] .orgtrack-motion-dialog:not(.hidden) {
+            opacity: 0;
+        }
+
+        body[data-interface] .orgtrack-motion-dialog:not(.hidden) .orgtrack-motion-dialog-panel {
+            opacity: 0;
+            scale: 0.98;
+        }
+    }
+
+    html[data-theme="dark"] {
+        color-scheme: dark;
+    }
+
+    html[data-theme="dark"] body[data-interface] {
+        --orgtrack-canvas: #0b1220;
+        --orgtrack-surface: #141e2b;
+        --orgtrack-surface-muted: #1b2938;
+        --orgtrack-surface-raised: #263648;
+        --orgtrack-ink: #edf2f7;
+        --orgtrack-text-secondary: #c5d0dc;
+        --orgtrack-muted: #a4b1bf;
+        --orgtrack-text-muted: #a4b1bf;
+        --orgtrack-line: #394a5c;
+        --orgtrack-border: #394a5c;
+        background-color: var(--orgtrack-canvas);
+        color: var(--orgtrack-ink);
+        transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    html[data-theme="dark"] body[data-interface] header.bg-white,
+    html[data-theme="dark"] body[data-interface] main [class~="bg-white"],
+    html[data-theme="dark"] body[data-interface] [role="dialog"] [class~="bg-white"] {
+        background-color: var(--orgtrack-surface) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="bg-gray-50"], [class~="bg-gray-100"], [class~="bg-slate-50"], [class~="bg-slate-100"]),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="bg-gray-50"], [class~="bg-gray-100"], [class~="bg-slate-50"], [class~="bg-slate-100"]) {
+        background-color: var(--orgtrack-surface-muted) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="bg-gray-200"], [class~="bg-slate-200"]),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="bg-gray-200"], [class~="bg-slate-200"]) {
+        background-color: var(--orgtrack-surface-raised) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="bg-gray-300"], [class~="bg-slate-300"]),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="bg-gray-300"], [class~="bg-slate-300"]) {
+        background-color: var(--orgtrack-surface-raised) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-gray-50"], [class~="hover:bg-slate-50"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-gray-50"], [class~="hover:bg-slate-50"]):hover {
+        background-color: var(--orgtrack-surface-raised) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-gray-300"], [class~="hover:bg-slate-300"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-gray-300"], [class~="hover:bg-slate-300"]):hover {
+        background-color: var(--orgtrack-surface-muted) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-gray-100"], [class~="hover:bg-gray-200"], [class~="hover:bg-gray-400"], [class~="hover:bg-slate-100"], [class~="hover:bg-slate-200"], [class~="hover:bg-slate-400"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-gray-100"], [class~="hover:bg-gray-200"], [class~="hover:bg-gray-400"], [class~="hover:bg-slate-100"], [class~="hover:bg-slate-200"], [class~="hover:bg-slate-400"]):hover {
+        background-color: var(--orgtrack-surface-raised) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-amber-50"], [class~="hover:bg-amber-100"], [class~="hover:bg-yellow-100"], [class~="hover:bg-orange-50"], [class~="hover:bg-orange-100"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-amber-50"], [class~="hover:bg-amber-100"], [class~="hover:bg-yellow-100"], [class~="hover:bg-orange-50"], [class~="hover:bg-orange-100"]):hover {
+        background-color: color-mix(in srgb, #f59e0b 24%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-blue-50"], [class~="hover:bg-sky-50"], [class~="hover:bg-sky-100"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-blue-50"], [class~="hover:bg-sky-50"], [class~="hover:bg-sky-100"]):hover {
+        background-color: color-mix(in srgb, #0284c7 24%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-green-100"], [class~="hover:bg-emerald-50"], [class~="hover:bg-emerald-200"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-green-100"], [class~="hover:bg-emerald-50"], [class~="hover:bg-emerald-200"]):hover {
+        background-color: color-mix(in srgb, #16a34a 24%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="hover:bg-red-50"], [class~="hover:bg-red-100"], [class~="hover:bg-rose-50"], [class~="hover:bg-rose-100"], [class~="hover:bg-rose-200"]):hover,
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is([class~="hover:bg-red-50"], [class~="hover:bg-red-100"], [class~="hover:bg-rose-50"], [class~="hover:bg-rose-100"], [class~="hover:bg-rose-200"]):hover {
+        background-color: color-mix(in srgb, #dc2626 24%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, header.bg-white, [role="dialog"]) :is(
+        [class~="text-black"],
+        [class~="text-gray-900"], [class~="text-gray-800"], [class~="text-gray-700"],
+        [class~="text-slate-900"], [class~="text-slate-800"], [class~="text-slate-700"]
+    ) {
+        color: var(--orgtrack-ink) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, header.bg-white, [role="dialog"]) :is(
+        [class~="text-gray-600"], [class~="text-gray-500"],
+        [class~="text-slate-600"], [class~="text-slate-500"]
+    ) {
+        color: var(--orgtrack-text-secondary) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, header.bg-white, [role="dialog"]) :is(
+        [class~="text-gray-400"], [class~="text-slate-400"]
+    ) {
+        color: var(--orgtrack-text-muted) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, [role="dialog"]) :is(
+        [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"]
+    ) {
+        color: #fcd34d !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, [role="dialog"]) :is(
+        [class*="text-blue-"], [class*="text-sky-"], [class*="text-indigo-"], [class*="text-violet-"]
+    ) {
+        color: #93c5fd !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, [role="dialog"]) :is(
+        [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"]
+    ) {
+        color: #86efac !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] :is(main, [role="dialog"]) :is(
+        [class*="text-red-"], [class*="text-rose-"]
+    ) {
+        color: #fda4af !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(
+        [class~="bg-amber-50"], [class~="bg-amber-100"], [class~="bg-yellow-50"], [class~="bg-yellow-100"], [class~="bg-orange-50"], [class~="bg-orange-100"]
+    ),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is(
+        [class~="bg-amber-50"], [class~="bg-amber-100"], [class~="bg-yellow-50"], [class~="bg-yellow-100"], [class~="bg-orange-50"], [class~="bg-orange-100"]
+    ) {
+        background-color: color-mix(in srgb, #f59e0b 18%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(
+        [class~="bg-blue-50"], [class~="bg-blue-100"], [class~="bg-sky-50"], [class~="bg-sky-100"], [class~="bg-indigo-50"], [class~="bg-indigo-100"]
+    ),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is(
+        [class~="bg-blue-50"], [class~="bg-blue-100"], [class~="bg-sky-50"], [class~="bg-sky-100"], [class~="bg-indigo-50"], [class~="bg-indigo-100"]
+    ) {
+        background-color: color-mix(in srgb, #0284c7 18%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(
+        [class~="bg-green-50"], [class~="bg-green-100"], [class~="bg-emerald-50"], [class~="bg-emerald-100"], [class~="bg-emerald-200"]
+    ),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is(
+        [class~="bg-green-50"], [class~="bg-green-100"], [class~="bg-emerald-50"], [class~="bg-emerald-100"]
+    ) {
+        background-color: color-mix(in srgb, #16a34a 18%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(
+        [class~="bg-red-50"], [class~="bg-red-100"], [class~="bg-rose-50"], [class~="bg-rose-100"], [class~="bg-rose-200"]
+    ),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is(
+        [class~="bg-red-50"], [class~="bg-red-100"], [class~="bg-rose-50"], [class~="bg-rose-100"]
+    ) {
+        background-color: color-mix(in srgb, #dc2626 18%, var(--orgtrack-surface)) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(
+        [class~="border-gray-100"], [class~="border-gray-200"], [class~="border-gray-300"],
+        [class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-300"]
+    ),
+    html[data-theme="dark"] body[data-interface] [role="dialog"] :is(
+        [class~="border-gray-100"], [class~="border-gray-200"], [class~="border-gray-300"],
+        [class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-300"]
+    ) {
+        border-color: var(--orgtrack-border) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is([class~="divide-gray-100"], [class~="divide-gray-200"], [class~="divide-slate-100"], [class~="divide-slate-200"]) > :not(:last-child) {
+        border-color: var(--orgtrack-border) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(input, select, textarea)::placeholder {
+        color: var(--orgtrack-text-muted);
+    }
+
+    html[data-theme="dark"] body[data-interface] main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+        border-color: var(--orgtrack-border) !important;
+        background-color: var(--orgtrack-surface) !important;
+        color: var(--orgtrack-ink) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface] main table thead {
+        background-color: var(--orgtrack-surface-muted);
+    }
+
+    html[data-theme="dark"] body[data-interface] main table thead th {
+        color: var(--orgtrack-text-secondary);
+    }
+
+    html[data-theme="dark"] body[data-interface] main table tbody tr:hover {
+        background-color: var(--orgtrack-surface-raised);
+    }
+
+    html[data-theme="dark"] body[data-interface] [role="dialog"] > .fixed.inset-0 {
+        background-color: rgb(2 6 23 / 76%);
+        backdrop-filter: blur(2px);
+    }
+
+    html[data-theme="dark"] body[data-interface="admin"] main h1,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > header h1,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel h2,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard article h2,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > details summary h2,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > section.overflow-hidden h2 {
+        color: var(--orgtrack-ink);
+    }
+
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > header p,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel thead th {
+        color: var(--orgtrack-text-secondary);
+    }
+
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard .admin-panel,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Monitoring alerts"] > a,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard article,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > details,
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > section.overflow-hidden {
+        border-color: var(--orgtrack-border);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+    }
+
+    html[data-theme="dark"] body[data-interface="admin"] .admin-monitoring-dashboard > section[aria-label="Activity monitoring totals"] > a:hover {
+        border-color: #52657a;
+        border-top-color: var(--orgtrack-orange);
+        box-shadow: 0 12px 24px rgb(0 0 0 / 24%);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-dashboard :is(.orgtrack-panel, .orgtrack-gpoa-summary, .orgtrack-activity-list, .orgtrack-progress) {
+        background: var(--orgtrack-surface) !important;
+        border-color: var(--orgtrack-border);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-dashboard .orgtrack-stat-card {
+        background: var(--orgtrack-surface) !important;
+        border-left-color: var(--orgtrack-border);
+        border-right-color: var(--orgtrack-border);
+        border-bottom-color: var(--orgtrack-border);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-activity-list thead,
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-activity-list .search-shell {
+        background: var(--orgtrack-surface-muted);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-activity-list tbody tr:hover {
+        background: var(--orgtrack-surface-raised);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-attention {
+        border-color: rgb(245 158 11 / 35%);
+        background: color-mix(in srgb, #f59e0b 14%, var(--orgtrack-surface));
+        box-shadow: 0 8px 20px rgb(0 0 0 / 18%);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-progress h2,
+    html[data-theme="dark"] body[data-interface="organization"] .orgtrack-activity-list h3 {
+        color: var(--orgtrack-ink);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] :is(.page-wrapper, .gpoa-card, .form-section, .limit-item, .sdg-checkbox-list, .sdg-picker-menu, .sdg-picker-toggle, .sdg-summary-badges) {
+        background-color: var(--orgtrack-surface) !important;
+        border-color: var(--orgtrack-border) !important;
+        color: var(--orgtrack-ink);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] :is(.activity-card, .activity-limits.card, .stepper, .detected-value) {
+        background-color: var(--orgtrack-surface-muted) !important;
+        border-color: var(--orgtrack-border) !important;
+        color: var(--orgtrack-ink);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] :is(.card-header h1, .page-header h1, .activity-card-header h3, .limit-item strong, .form-group label, .sdg-checkbox-item label) {
+        color: var(--orgtrack-ink) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] :is(.page-description, .section-description, .section-label, .limit-header p, .limit-item span, .help-text, .sdg-helper-text, .sdg-checkbox-item) {
+        color: var(--orgtrack-text-secondary) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] :is(.activity-card input, .activity-card select, .activity-card textarea, .form-group input, .form-group select, .form-group textarea, .sdg-picker-toggle) {
+        background-color: var(--orgtrack-surface) !important;
+        border-color: var(--orgtrack-border) !important;
+        color: var(--orgtrack-ink) !important;
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .btn-secondary,
+    html[data-theme="dark"] body[data-interface="organization"] .btn-close {
+        background-color: var(--orgtrack-surface-raised);
+        border-color: var(--orgtrack-border);
+        color: var(--orgtrack-ink);
+    }
+
+    html[data-theme="dark"] body[data-interface="organization"] .form-errors {
+        border-color: rgb(248 113 113 / 35%);
+        background-color: color-mix(in srgb, #dc2626 18%, var(--orgtrack-surface));
+        color: #fda4af;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        html[data-theme] body[data-interface] header.bg-white {
+            transition: background-color 180ms ease, color 180ms ease;
+        }
     }
 }
